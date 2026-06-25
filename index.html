@@ -79,6 +79,13 @@
   .chart canvas{width:100%;height:200px;display:block}
   .legend{display:flex;gap:14px;font-family:var(--mono);font-size:11px;color:#3a4652;margin-top:6px}
   .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .check{display:flex;align-items:center;gap:8px;font-size:13px;color:#33404d;margin:2px 0 12px;cursor:pointer}
+  .check input{width:16px;height:16px;accent-color:var(--amber);cursor:pointer;flex:0 0 auto}
+  .strc{margin-top:16px;padding:18px 20px}
+  .strc h3{font-family:var(--disp);font-weight:700;font-size:19px;margin:0 0 8px;color:var(--ink)}
+  .strc p{font-size:14px;color:#33404d;margin:0 0 6px;max-width:90ch}
+  .strc b{color:var(--amber-d)}
+  .strc .cost{font-family:var(--mono);font-size:12.5px;color:var(--gray);margin-top:8px}
 
   footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   footer p{font-size:11.5px;color:var(--gray);margin:0;max-width:74ch}
@@ -137,6 +144,11 @@
       <div class="ctrl"><div class="row"><label for="monthlyM">Monthly obligations</label><span class="out" id="o_monthlyM"></span></div><input type="range" id="monthlyM" min="50" max="400" step="0.1" value="167.7"></div>
       <div class="ctrl"><div class="row"><label for="sharesM">Shares outstanding</label><span class="out" id="o_sharesM"></span></div><input type="range" id="sharesM" min="200" max="500" step="0.1" value="358.86"></div>
 
+      <div class="grp-title">STRC, the variable-rate preferred</div>
+      <div class="ctrl"><div class="row"><label for="strcOut">STRC outstanding</label><span class="out" id="o_strcOut"></span></div><input type="range" id="strcOut" min="1" max="10" step="0.1" value="5.0"></div>
+      <div class="ctrl"><div class="row"><label for="strcRate">STRC dividend rate</label><span class="out" id="o_strcRate"></span></div><input type="range" id="strcRate" min="11.5" max="25" step="0.25" value="11.5"></div>
+      <label class="check"><input type="checkbox" id="defendPar"> Defend par: rate climbs through the crash</label>
+
       <div class="btns">
         <button class="btn primary" id="brutal">Brutal scenario</button>
         <button class="btn" id="today">Today's condition</button>
@@ -169,6 +181,13 @@
     </div>
   </div>
 
+  <div class="strc card">
+    <h3>STRC: the obligation that grows when you need it to shrink</h3>
+    <p>STRC is a roughly <b>$5.0 billion perpetual preferred</b> paying <b>11.5% a year</b>, about <b>$48 million a month</b>. It sits inside the senior stack, has no claim on the Bitcoin, and never matures. To keep it trading near its $100 par, Strategy resets the rate every month, and so far it has only gone up: 9% at launch in July 2025 to 11.5% by March 2026.</p>
+    <p>In a crash that becomes a trap. Defending par means raising the rate, which raises the cash drain, which forces more Bitcoin sales, exactly when the at-the-market machine that funds those dividends is breaking. Missed dividends do not disappear either; they accumulate and compound at the prevailing rate. Turn on <b>"defend par"</b> in the controls and push the STRC rate up to watch it feed the claim ratio and pull the final stack down.</p>
+    <div class="cost" id="strcCost"></div>
+  </div>
+
   <footer>
     <p>Educational model, not investment advice. Starting figures reflect Strategy's reported holdings and a public stress test by Adam Livingston (@AdamBLiv). Bitcoin and MSTR prices are point-in-time and editable. The model assumes no new buys, no new equity issuance, and obligations serviced first from cash and then from BTC sales.</p>
     <p class="mark">cryptonative.capital</p>
@@ -183,7 +202,7 @@ const MONTHS=36;
 
 // ---- model (verified against the reference) ----
 function simulate(p){
-  const cashExhaust=p.cash0/p.monthlyOblig;
+  const baseRate=11.5;
   const btcTrough=p.btc0*(1-p.crashPct/100);
   const btcAt=t=> t<=p.troughMonth
       ? p.btc0+(btcTrough-p.btc0)*(t/p.troughMonth)
@@ -193,12 +212,19 @@ function simulate(p){
   const mnavAt=t=> t<=p.troughMonth
       ? mnav0+(p.mnavTrough-mnav0)*(t/p.troughMonth)
       : p.mnavTrough+(p.mnavFinal-p.mnavTrough)*((t-p.troughMonth)/(MONTHS-p.troughMonth));
-  let totalBTC=p.totalBTC0, sold=0;
+  const strcRateAt=t=> (!p.defendPar) ? p.strcRate
+      : (t<=p.troughMonth ? baseRate+(p.strcRate-baseRate)*(t/p.troughMonth) : p.strcRate);
+  const oblAt=t=> p.monthlyOblig + p.strcOut*Math.max(strcRateAt(t)-baseRate,0)/100/12;
+  let totalBTC=p.totalBTC0, sold=0, cash=p.cash0, seniorAccrued=0;
   const r={t:[],price:[],senior:[],common:[],claim:[],cebe:[],mstr:[]};
   for(let t=0;t<=MONTHS;t++){
     const price=btcAt(t);
-    if(t>0 && t>cashExhaust){ const s=p.monthlyOblig/price; totalBTC-=s; sold+=s; }
-    const seniorUSD=p.seniorUSD0+p.monthlyOblig*Math.min(t,cashExhaust);
+    if(t>0){
+      const obl=oblAt(t);
+      if(cash>=obl){ cash-=obl; seniorAccrued+=obl; }
+      else { const fromCash=Math.max(cash,0); seniorAccrued+=fromCash; cash=0; const s=(obl-fromCash)/price; totalBTC-=s; sold+=s; }
+    }
+    const seniorUSD=p.seniorUSD0+seniorAccrued;
     const seniorBTC=seniorUSD/price;
     const commonBTC=totalBTC-seniorBTC;
     r.t.push(t); r.price.push(price); r.senior.push(seniorBTC); r.common.push(commonBTC);
@@ -209,7 +235,7 @@ function simulate(p){
   r.sold=sold; r.finalBTC=totalBTC;
   r.minCommon=Math.min(...r.common); r.maxClaim=Math.max(...r.claim);
   r.minCebe=Math.min(...r.cebe); r.minMstr=Math.min(...r.mstr);
-  r.btcTrough=btcTrough;
+  r.btcTrough=btcTrough; r.strcMonthly=p.strcOut*p.strcRate/100/12;
   return r;
 }
 
@@ -276,11 +302,12 @@ function stackChart(cv,senior,common,total){
 }
 
 // ---- wiring ----
-const ids=["crashPct","troughMonth","btcFinal","mnavTrough","mnavFinal","btc0","mstr0","totalBTC0","seniorB","cashB","monthlyM","sharesM"];
-const defaults={crashPct:55,troughMonth:6,btcFinal:48498,mnavTrough:0.48,mnavFinal:1.40,btc0:59135,mstr0:87.64,totalBTC0:847363,seniorB:20.8,cashB:1.4,monthlyM:167.7,sharesM:358.86};
+const ids=["crashPct","troughMonth","btcFinal","mnavTrough","mnavFinal","btc0","mstr0","totalBTC0","seniorB","cashB","monthlyM","sharesM","strcOut","strcRate"];
+const defaults={crashPct:55,troughMonth:6,btcFinal:48498,mnavTrough:0.48,mnavFinal:1.40,btc0:59135,mstr0:87.64,totalBTC0:847363,seniorB:20.8,cashB:1.4,monthlyM:167.7,sharesM:358.86,strcOut:5.0,strcRate:11.5};
 const outFmt={
   crashPct:v=>v+"%", troughMonth:v=>"month "+v, btcFinal:v=>cusd(v), mnavTrough:v=>(+v).toFixed(2)+"x", mnavFinal:v=>(+v).toFixed(2)+"x",
-  btc0:v=>cusd(v), mstr0:v=>cusd2(+v), totalBTC0:v=>cint(v), seniorB:v=>"$"+(+v).toFixed(1)+"B", cashB:v=>"$"+(+v).toFixed(1)+"B", monthlyM:v=>"$"+(+v).toFixed(1)+"M", sharesM:v=>(+v).toFixed(1)+"M"
+  btc0:v=>cusd(v), mstr0:v=>cusd2(+v), totalBTC0:v=>cint(v), seniorB:v=>"$"+(+v).toFixed(1)+"B", cashB:v=>"$"+(+v).toFixed(1)+"B", monthlyM:v=>"$"+(+v).toFixed(1)+"M", sharesM:v=>(+v).toFixed(1)+"M",
+  strcOut:v=>"$"+(+v).toFixed(1)+"B", strcRate:v=>(+v).toFixed(2)+"%"
 };
 
 function readParams(){
@@ -289,7 +316,8 @@ function readParams(){
     crashPct:g("crashPct"), troughMonth:g("troughMonth"), btcFinal:g("btcFinal"),
     mnavTrough:g("mnavTrough"), mnavFinal:g("mnavFinal"),
     btc0:g("btc0"), mstr0:g("mstr0"), totalBTC0:g("totalBTC0"),
-    seniorUSD0:g("seniorB")*1e9, cash0:g("cashB")*1e9, monthlyOblig:g("monthlyM")*1e6, shares:g("sharesM")*1e6
+    seniorUSD0:g("seniorB")*1e9, cash0:g("cashB")*1e9, monthlyOblig:g("monthlyM")*1e6, shares:g("sharesM")*1e6,
+    strcOut:g("strcOut")*1e9, strcRate:g("strcRate"), defendPar:$("defendPar").checked
   };
 }
 
@@ -315,6 +343,7 @@ function update(){
   $("kCebe").textContent=cint(r.minCebe);
   $("kMstr").textContent=cusd2(r.minMstr);
   $("kSold").textContent=cint(r.sold);
+  $("strcCost").textContent="STRC dividend at "+p.strcRate.toFixed(2)+"%: "+fm(r.strcMonthly)+" per month, "+fm(r.strcMonthly*12)+" per year"+(p.defendPar?", climbing through the crash":"");
 
   stackChart($("cStack"),r.senior,r.common.map(v=>Math.max(v,0)).map((v,i)=>r.senior[i]+v),r.senior.map((s,i)=>s+Math.max(r.common[i],0)));
   // claim ratio
@@ -327,20 +356,21 @@ function update(){
   stateToHash();
 }
 
-function applyPreset(obj){ for(const k in obj){ if($(k)) $(k).value=obj[k]; } update(); }
+function applyPreset(obj){ for(const k in obj){ if($(k)) $(k).value=obj[k]; } if($("defendPar")) $("defendPar").checked=false; update(); }
 const brutal={...defaults};
 function setToday(){
-  const bs={btc0:defaults.btc0,mstr0:defaults.mstr0,totalBTC0:defaults.totalBTC0,seniorB:defaults.seniorB,cashB:defaults.cashB,monthlyM:defaults.monthlyM,sharesM:defaults.sharesM};
+  const bs={btc0:defaults.btc0,mstr0:defaults.mstr0,totalBTC0:defaults.totalBTC0,seniorB:defaults.seniorB,cashB:defaults.cashB,monthlyM:defaults.monthlyM,sharesM:defaults.sharesM,strcOut:defaults.strcOut,strcRate:defaults.strcRate};
   for(const k in bs) $(k).value=bs[k];
   const p=readParams();
   const navps0=Math.max(p.totalBTC0-p.seniorUSD0/p.btc0,0)*p.btc0/p.shares;
   const mnav0=navps0>0?p.mstr0/navps0:1;
   $("crashPct").value=0; $("troughMonth").value=6; $("btcFinal").value=defaults.btc0;
-  $("mnavTrough").value=mnav0.toFixed(2); $("mnavFinal").value=mnav0.toFixed(2);
+  $("mnavTrough").value=mnav0.toFixed(2); $("mnavFinal").value=mnav0.toFixed(2); $("defendPar").checked=false;
   update();
 }
 function stateToHash(){
   const parts=ids.map(id=>id+"="+$(id).value);
+  parts.push("defendPar="+($("defendPar").checked?1:0));
   try{ history.replaceState(null,"","#"+parts.join("&")); }catch(e){}
 }
 function hashToState(){
@@ -349,6 +379,7 @@ function hashToState(){
   location.hash.slice(1).split("&").forEach(pair=>{
     const i=pair.indexOf("="); if(i<0) return;
     const k=pair.slice(0,i), v=pair.slice(i+1);
+    if(k==="defendPar"){ $("defendPar").checked=(v==="1"); any=true; return; }
     if(ids.includes(k) && v!==""){ $(k).value=v; any=true; }
   });
   return any;
@@ -359,6 +390,7 @@ function copyText(t){
 }
 
 ids.forEach(id=>$(id).addEventListener("input",update));
+$("defendPar").addEventListener("change",update);
 $("brutal").addEventListener("click",()=>applyPreset(brutal));
 $("today").addEventListener("click",setToday);
 $("copy").addEventListener("click",()=>{
