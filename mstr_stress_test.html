@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Strategy Stress Test — Crypto Native Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1f3a5f; --navy-d:#16293f; --amber:#d97a1a; --amber-d:#a85c0f;
+    --ink:#0f1419; --gray:#6b7280; --line:#e6e8ec; --bg:#eceff3; --card:#ffffff;
+    --danger:#c0392b; --ok:#15795a; --paper:#fafbfc;
+    --disp:"Space Grotesk","Helvetica Neue",Arial,sans-serif;
+    --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --body:"Helvetica Neue",Arial,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.45;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+
+  /* header */
+  header{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:2px solid var(--navy)}
+  .emblem{width:34px;height:34px;border-radius:50%;background:var(--ink);position:relative;flex:0 0 auto}
+  .emblem::before{content:"";position:absolute;inset:9px;border-radius:50%;border:1.6px solid #fff}
+  .emblem::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff;transform:translate(-50%,-50%)}
+  .brand{font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.2px;color:var(--ink)}
+  .brand small{display:block;font-family:var(--mono);font-weight:500;font-size:10.5px;letter-spacing:1.5px;color:var(--gray);text-transform:uppercase;margin-top:1px}
+  .logo{height:36px;width:auto;display:block}
+  .hdr-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray);border-left:1px solid var(--line);padding-left:12px}
+
+  h1{font-family:var(--disp);font-weight:700;font-size:30px;line-height:1.08;margin:22px 0 8px}
+  h1 .hl{color:var(--amber-d)}
+  .sub{color:var(--gray);font-size:15px;max-width:62ch;margin:0}
+
+  /* verdict band */
+  .verdict-row{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;margin:20px 0 0;padding:18px 20px}
+  .pill{font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.4px;padding:14px 20px;border-radius:11px;color:#fff;white-space:nowrap;text-align:center}
+  .pill.ok{background:var(--ok)} .pill.bad{background:var(--danger)}
+  .pill small{display:block;font-family:var(--mono);font-weight:500;font-size:10.5px;letter-spacing:1px;opacity:.85;margin-top:2px}
+  .summary{font-size:15px;color:#2b3440}
+  .summary b{color:var(--ink)}
+
+  /* kpis */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:14px}
+  .kpi{padding:13px 14px}
+  .kpi .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--gray)}
+  .kpi .val{font-family:var(--mono);font-weight:600;font-size:21px;margin-top:5px;color:var(--navy)}
+  .kpi .val.warn{color:var(--amber-d)}
+
+  /* main grid */
+  .main{display:grid;grid-template-columns:320px 1fr;gap:16px;margin-top:16px}
+  .controls{padding:16px 16px 6px;align-self:start;position:sticky;top:12px}
+  .grp-title{font-family:var(--mono);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--navy);font-weight:600;margin:6px 0 10px;display:flex;align-items:center;gap:8px}
+  .grp-title::after{content:"";flex:1;height:1px;background:var(--line)}
+  .ctrl{margin-bottom:14px}
+  .ctrl .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .ctrl label{font-size:13px;color:#33404d}
+  .ctrl .out{font-family:var(--mono);font-weight:600;font-size:13px;color:var(--ink)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:3px;background:var(--line);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #fff;box-shadow:0 0 0 1px var(--amber-d);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #fff;box-shadow:0 0 0 1px var(--amber-d);cursor:pointer}
+  input[type=range]:focus-visible{box-shadow:0 0 0 3px rgba(217,122,26,.3)}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .btn{flex:1 1 auto;padding:10px 8px;border:1px solid var(--navy);background:#fff;color:var(--navy);font-family:var(--disp);font-weight:600;font-size:12.5px;border-radius:9px;cursor:pointer;white-space:nowrap}
+  .btn:hover{background:var(--navy);color:#fff}
+  .btn.primary{background:var(--navy);color:#fff}
+  .btn.primary:hover{background:var(--navy-d)}
+  .btn.ghost{border-color:var(--line);color:var(--gray);flex-basis:100%}
+  .btn.ghost:hover{background:var(--paper);color:var(--ink);border-color:var(--gray)}
+
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .chart{padding:14px 14px 10px}
+  .chart h3{font-family:var(--disp);font-weight:600;font-size:14.5px;margin:0 0 2px}
+  .chart p{font-size:11.5px;color:var(--gray);margin:0 0 8px}
+  .chart canvas{width:100%;height:200px;display:block}
+  .legend{display:flex;gap:14px;font-family:var(--mono);font-size:11px;color:#3a4652;margin-top:6px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+  footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  footer p{font-size:11.5px;color:var(--gray);margin:0;max-width:74ch}
+  footer .mark{font-family:var(--disp);font-weight:700;color:var(--ink);font-size:13px}
+
+  @media(max-width:880px){
+    .main{grid-template-columns:1fr}
+    .controls{position:static}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .charts{grid-template-columns:1fr}
+    .verdict-row{grid-template-columns:1fr}
+    h1{font-size:25px}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img class="logo" src="https://images.squarespace-cdn.com/content/v1/62ab88b9fb79055cddbf3749/9d2a9f18-38ca-436f-b5c3-9b51eb3567b6/long.png?format=750w" alt="Crypto Native Capital" />
+    <div class="hdr-tag">Treasury Stress Lab</div>
+  </header>
+
+  <h1>Could Strategy survive a <span class="hl">brutal</span> Bitcoin crash?</h1>
+  <p class="sub">A 3-year solvency model for the largest corporate Bitcoin holder. Senior claims are fixed in dollars, so when Bitcoin falls they swell in BTC terms and eat into common equity. Drag the inputs to run your own scenario.</p>
+
+  <div class="verdict-row card">
+    <div id="pill" class="pill ok">SURVIVES<small id="pillSub">COMMON EQUITY HOLDS</small></div>
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi card"><div class="lab">BTC stack, year 3</div><div class="val" id="kFinalBtc">—</div></div>
+    <div class="kpi card"><div class="lab">Peak claim ratio</div><div class="val warn" id="kClaim">—</div></div>
+    <div class="kpi card"><div class="lab">Low CEBE (sats/sh)</div><div class="val warn" id="kCebe">—</div></div>
+    <div class="kpi card"><div class="lab">Low MSTR price</div><div class="val warn" id="kMstr">—</div></div>
+    <div class="kpi card"><div class="lab">BTC sold to survive</div><div class="val" id="kSold">—</div></div>
+  </div>
+
+  <div class="main">
+    <div class="controls card">
+      <div class="grp-title">The crash</div>
+      <div class="ctrl"><div class="row"><label for="crashPct">BTC drawdown</label><span class="out" id="o_crashPct"></span></div><input type="range" id="crashPct" min="0" max="80" step="1" value="55"></div>
+      <div class="ctrl"><div class="row"><label for="troughMonth">Months to the bottom</label><span class="out" id="o_troughMonth"></span></div><input type="range" id="troughMonth" min="2" max="18" step="1" value="6"></div>
+      <div class="ctrl"><div class="row"><label for="btcFinal">BTC price, year 3</label><span class="out" id="o_btcFinal"></span></div><input type="range" id="btcFinal" min="20000" max="130000" step="500" value="48498"></div>
+      <div class="ctrl"><div class="row"><label for="mnavTrough">mNAV at the bottom</label><span class="out" id="o_mnavTrough"></span></div><input type="range" id="mnavTrough" min="0.20" max="1.50" step="0.01" value="0.48"></div>
+      <div class="ctrl"><div class="row"><label for="mnavFinal">mNAV, year 3</label><span class="out" id="o_mnavFinal"></span></div><input type="range" id="mnavFinal" min="0.50" max="3.00" step="0.05" value="1.40"></div>
+
+      <div class="grp-title">Strategy's balance sheet</div>
+      <div class="ctrl"><div class="row"><label for="btc0">BTC price today</label><span class="out" id="o_btc0"></span></div><input type="range" id="btc0" min="30000" max="130000" step="100" value="59135"></div>
+      <div class="ctrl"><div class="row"><label for="mstr0">MSTR price today</label><span class="out" id="o_mstr0"></span></div><input type="range" id="mstr0" min="10" max="400" step="0.1" value="87.64"></div>
+      <div class="ctrl"><div class="row"><label for="totalBTC0">Bitcoin held</label><span class="out" id="o_totalBTC0"></span></div><input type="range" id="totalBTC0" min="500000" max="1200000" step="1000" value="847363"></div>
+      <div class="ctrl"><div class="row"><label for="seniorB">Senior stack (debt + pref)</label><span class="out" id="o_seniorB"></span></div><input type="range" id="seniorB" min="5" max="40" step="0.1" value="20.8"></div>
+      <div class="ctrl"><div class="row"><label for="cashB">Cash on hand</label><span class="out" id="o_cashB"></span></div><input type="range" id="cashB" min="0" max="10" step="0.1" value="1.4"></div>
+      <div class="ctrl"><div class="row"><label for="monthlyM">Monthly obligations</label><span class="out" id="o_monthlyM"></span></div><input type="range" id="monthlyM" min="50" max="400" step="0.1" value="167.7"></div>
+      <div class="ctrl"><div class="row"><label for="sharesM">Shares outstanding</label><span class="out" id="o_sharesM"></span></div><input type="range" id="sharesM" min="200" max="500" step="0.1" value="358.86"></div>
+
+      <div class="btns">
+        <button class="btn primary" id="brutal">Brutal scenario</button>
+        <button class="btn" id="today">Today's condition</button>
+        <button class="btn ghost" id="copy">Copy share link</button>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="chart card">
+        <h3>Who owns the Bitcoin stack</h3>
+        <p>Senior claims swallow common equity as Bitcoin falls</p>
+        <canvas id="cStack"></canvas>
+        <div class="legend"><span><i style="background:var(--navy)"></i>Senior claims</span><span><i style="background:var(--amber)"></i>Common equity</span></div>
+      </div>
+      <div class="chart card">
+        <h3>Senior claims as % of the stack</h3>
+        <p>Above the red line, common equity is nearly gone</p>
+        <canvas id="cClaim"></canvas>
+      </div>
+      <div class="chart card">
+        <h3>MSTR modeled price</h3>
+        <p>NAV per share times the mNAV multiple</p>
+        <canvas id="cMstr"></canvas>
+      </div>
+      <div class="chart card">
+        <h3>Bitcoin per share (CEBE)</h3>
+        <p>Sats of common equity behind each share</p>
+        <canvas id="cCebe"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Educational model, not investment advice. Starting figures reflect Strategy's reported holdings and a public stress test by Adam Livingston (@AdamBLiv). Bitcoin and MSTR prices are point-in-time and editable. The model assumes no new buys, no new equity issuance, and obligations serviced first from cash and then from BTC sales.</p>
+    <p class="mark">cryptonative.capital</p>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const MONTHS=36;
+
+// ---- model (verified against the reference) ----
+function simulate(p){
+  const cashExhaust=p.cash0/p.monthlyOblig;
+  const btcTrough=p.btc0*(1-p.crashPct/100);
+  const btcAt=t=> t<=p.troughMonth
+      ? p.btc0+(btcTrough-p.btc0)*(t/p.troughMonth)
+      : btcTrough+(p.btcFinal-btcTrough)*((t-p.troughMonth)/(MONTHS-p.troughMonth));
+  const navps0=Math.max(p.totalBTC0-p.seniorUSD0/p.btc0,0)*p.btc0/p.shares;
+  const mnav0= navps0>0 ? p.mstr0/navps0 : 1;
+  const mnavAt=t=> t<=p.troughMonth
+      ? mnav0+(p.mnavTrough-mnav0)*(t/p.troughMonth)
+      : p.mnavTrough+(p.mnavFinal-p.mnavTrough)*((t-p.troughMonth)/(MONTHS-p.troughMonth));
+  let totalBTC=p.totalBTC0, sold=0;
+  const r={t:[],price:[],senior:[],common:[],claim:[],cebe:[],mstr:[]};
+  for(let t=0;t<=MONTHS;t++){
+    const price=btcAt(t);
+    if(t>0 && t>cashExhaust){ const s=p.monthlyOblig/price; totalBTC-=s; sold+=s; }
+    const seniorUSD=p.seniorUSD0+p.monthlyOblig*Math.min(t,cashExhaust);
+    const seniorBTC=seniorUSD/price;
+    const commonBTC=totalBTC-seniorBTC;
+    r.t.push(t); r.price.push(price); r.senior.push(seniorBTC); r.common.push(commonBTC);
+    r.claim.push(seniorBTC/totalBTC*100);
+    r.cebe.push(Math.max(commonBTC,0)*1e8/p.shares);
+    r.mstr.push(mnavAt(t)*Math.max(commonBTC,0)*price/p.shares);
+  }
+  r.sold=sold; r.finalBTC=totalBTC;
+  r.minCommon=Math.min(...r.common); r.maxClaim=Math.max(...r.claim);
+  r.minCebe=Math.min(...r.cebe); r.minMstr=Math.min(...r.mstr);
+  r.btcTrough=btcTrough;
+  return r;
+}
+
+// ---- formatting ----
+const cusd=n=> "$"+Math.round(n).toLocaleString();
+const cusd2=n=> "$"+n.toFixed(2);
+const cbtc=n=> Math.round(n).toLocaleString()+" BTC";
+const cint=n=> Math.round(n).toLocaleString();
+const fb=n=> "$"+(n/1e9).toFixed(1)+"B";
+const fm=n=> "$"+(n/1e6).toFixed(1)+"M";
+
+// ---- canvas charts ----
+function prep(cv){
+  const dpr=window.devicePixelRatio||1;
+  const rect=cv.getBoundingClientRect();
+  cv.width=Math.max(rect.width,10)*dpr; cv.height=Math.max(rect.height,10)*dpr;
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w:rect.width,h:rect.height};
+}
+const PAD={l:52,r:10,t:10,b:22};
+function xfor(i,w){return PAD.l+(w-PAD.l-PAD.r)*(i/MONTHS);}
+function yfor(v,min,max,h){return PAD.t+(h-PAD.t-PAD.b)*(1-(v-min)/(max-min||1));}
+function grid(ctx,w,h,min,max,fmt){
+  ctx.font="11px IBM Plex Mono, monospace"; ctx.textBaseline="middle";
+  for(let i=0;i<=3;i++){
+    const v=min+(max-min)*i/3, y=yfor(v,min,max,h);
+    ctx.strokeStyle="#eef1f4"; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(w-PAD.r,y);ctx.stroke();
+    ctx.fillStyle="#9aa3ad"; ctx.textAlign="right"; ctx.fillText(fmt(v),PAD.l-6,y);
+  }
+  ctx.fillStyle="#9aa3ad"; ctx.textAlign="center"; ctx.textBaseline="alphabetic";
+  [0,12,24,36].forEach(m=>ctx.fillText("m"+m,xfor(m,w),h-6));
+}
+function lineChart(cv,data,{color,min,max,fmt,band}){
+  const {ctx,w,h}=prep(cv);
+  if(band!=null){
+    const yb=yfor(band,min,max,h);
+    ctx.fillStyle="rgba(192,57,43,.07)"; ctx.fillRect(PAD.l,PAD.t,w-PAD.l-PAD.r,Math.max(yb-PAD.t,0));
+    ctx.strokeStyle="rgba(192,57,43,.55)"; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(PAD.l,yb);ctx.lineTo(w-PAD.r,yb);ctx.stroke(); ctx.setLineDash([]);
+  }
+  grid(ctx,w,h,min,max,fmt);
+  ctx.strokeStyle=color; ctx.lineWidth=2.4; ctx.lineJoin="round"; ctx.beginPath();
+  data.forEach((v,i)=>{const x=xfor(i,w),y=yfor(v,min,max,h); i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+  ctx.stroke();
+}
+function stackChart(cv,senior,common,total){
+  const {ctx,w,h}=prep(cv);
+  const max=Math.max(...total)*1.04, min=0;
+  grid(ctx,w,h,min,max,v=>Math.round(v/1000)+"k");
+  // common equity (top band) = amber area to total
+  const area=(arr,col)=>{
+    ctx.beginPath();
+    arr.forEach((v,i)=>{const x=xfor(i,w),y=yfor(v,min,max,h); i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+    ctx.lineTo(xfor(MONTHS,w),yfor(0,min,max,h)); ctx.lineTo(xfor(0,w),yfor(0,min,max,h)); ctx.closePath();
+    ctx.fillStyle=col; ctx.fill();
+  };
+  area(total,"rgba(217,122,26,.85)");      // total filled amber (common shows where senior doesn't reach)
+  area(senior,"rgba(31,58,95,.92)");        // senior overlaps from bottom (navy)
+  // total outline
+  ctx.strokeStyle="#16293f"; ctx.lineWidth=1.4; ctx.beginPath();
+  total.forEach((v,i)=>{const x=xfor(i,w),y=yfor(v,min,max,h); i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+  ctx.stroke();
+}
+
+// ---- wiring ----
+const ids=["crashPct","troughMonth","btcFinal","mnavTrough","mnavFinal","btc0","mstr0","totalBTC0","seniorB","cashB","monthlyM","sharesM"];
+const defaults={crashPct:55,troughMonth:6,btcFinal:48498,mnavTrough:0.48,mnavFinal:1.40,btc0:59135,mstr0:87.64,totalBTC0:847363,seniorB:20.8,cashB:1.4,monthlyM:167.7,sharesM:358.86};
+const outFmt={
+  crashPct:v=>v+"%", troughMonth:v=>"month "+v, btcFinal:v=>cusd(v), mnavTrough:v=>(+v).toFixed(2)+"x", mnavFinal:v=>(+v).toFixed(2)+"x",
+  btc0:v=>cusd(v), mstr0:v=>cusd2(+v), totalBTC0:v=>cint(v), seniorB:v=>"$"+(+v).toFixed(1)+"B", cashB:v=>"$"+(+v).toFixed(1)+"B", monthlyM:v=>"$"+(+v).toFixed(1)+"M", sharesM:v=>(+v).toFixed(1)+"M"
+};
+
+function readParams(){
+  const g=id=>parseFloat($(id).value);
+  return {
+    crashPct:g("crashPct"), troughMonth:g("troughMonth"), btcFinal:g("btcFinal"),
+    mnavTrough:g("mnavTrough"), mnavFinal:g("mnavFinal"),
+    btc0:g("btc0"), mstr0:g("mstr0"), totalBTC0:g("totalBTC0"),
+    seniorUSD0:g("seniorB")*1e9, cash0:g("cashB")*1e9, monthlyOblig:g("monthlyM")*1e6, shares:g("sharesM")*1e6
+  };
+}
+
+function update(){
+  ids.forEach(id=>$("o_"+id).textContent=outFmt[id]($(id).value));
+  const p=readParams();
+  const r=simulate(p);
+
+  const survives=r.minCommon>0;
+  const pill=$("pill");
+  pill.className="pill "+(survives?"ok":"bad");
+  pill.childNodes[0].nodeValue=survives?"SURVIVES":"EQUITY WIPED";
+  $("pillSub").textContent=survives?"COMMON EQUITY HOLDS":"SENIOR CLAIMS EXCEED THE STACK";
+
+  $("summary").innerHTML="Bitcoin crashes <b>"+p.crashPct+"%</b> to <b>"+cusd(r.btcTrough)+
+    "</b> by month "+p.troughMonth+", and the mNAV multiple compresses to <b>"+p.mnavTrough.toFixed(2)+
+    "x</b>. Fixed-dollar senior claims swell to <b>"+r.maxClaim.toFixed(1)+"%</b> of the Bitcoin stack and common equity bottoms at <b>"+
+    (r.minCommon>0?cint(r.minCommon)+" BTC":"zero")+"</b>. "+
+    (survives?"Strategy is dragged through 18 months of pain but stays solvent.":"Senior claims exceed the entire stack — common equity is wiped out.");
+
+  $("kFinalBtc").textContent=cint(r.finalBTC);
+  $("kClaim").textContent=r.maxClaim.toFixed(1)+"%";
+  $("kCebe").textContent=cint(r.minCebe);
+  $("kMstr").textContent=cusd2(r.minMstr);
+  $("kSold").textContent=cint(r.sold);
+
+  stackChart($("cStack"),r.senior,r.common.map(v=>Math.max(v,0)).map((v,i)=>r.senior[i]+v),r.senior.map((s,i)=>s+Math.max(r.common[i],0)));
+  // claim ratio
+  lineChart($("cClaim"),r.claim,{color:"#16293f",min:0,max:Math.max(100,Math.ceil(r.maxClaim/10)*10),fmt:v=>Math.round(v)+"%",band:90});
+  // mstr price
+  lineChart($("cMstr"),r.mstr,{color:"#d97a1a",min:0,max:Math.max(...r.mstr)*1.1||1,fmt:v=>"$"+Math.round(v)});
+  // cebe
+  lineChart($("cCebe"),r.cebe,{color:"#1f3a5f",min:0,max:Math.max(...r.cebe)*1.1||1,fmt:v=>Math.round(v/1000)+"k"});
+
+  stateToHash();
+}
+
+function applyPreset(obj){ for(const k in obj){ if($(k)) $(k).value=obj[k]; } update(); }
+const brutal={...defaults};
+function setToday(){
+  const bs={btc0:defaults.btc0,mstr0:defaults.mstr0,totalBTC0:defaults.totalBTC0,seniorB:defaults.seniorB,cashB:defaults.cashB,monthlyM:defaults.monthlyM,sharesM:defaults.sharesM};
+  for(const k in bs) $(k).value=bs[k];
+  const p=readParams();
+  const navps0=Math.max(p.totalBTC0-p.seniorUSD0/p.btc0,0)*p.btc0/p.shares;
+  const mnav0=navps0>0?p.mstr0/navps0:1;
+  $("crashPct").value=0; $("troughMonth").value=6; $("btcFinal").value=defaults.btc0;
+  $("mnavTrough").value=mnav0.toFixed(2); $("mnavFinal").value=mnav0.toFixed(2);
+  update();
+}
+function stateToHash(){
+  const parts=ids.map(id=>id+"="+$(id).value);
+  try{ history.replaceState(null,"","#"+parts.join("&")); }catch(e){}
+}
+function hashToState(){
+  if(!location.hash) return false;
+  let any=false;
+  location.hash.slice(1).split("&").forEach(pair=>{
+    const i=pair.indexOf("="); if(i<0) return;
+    const k=pair.slice(0,i), v=pair.slice(i+1);
+    if(ids.includes(k) && v!==""){ $(k).value=v; any=true; }
+  });
+  return any;
+}
+function copyText(t){
+  if(navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+  return new Promise((res,rej)=>{const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand("copy");res();}catch(e){rej(e);}document.body.removeChild(ta);});
+}
+
+ids.forEach(id=>$(id).addEventListener("input",update));
+$("brutal").addEventListener("click",()=>applyPreset(brutal));
+$("today").addEventListener("click",setToday);
+$("copy").addEventListener("click",()=>{
+  stateToHash();
+  const btn=$("copy"), label=btn.textContent;
+  copyText(location.href).then(()=>{btn.textContent="Link copied";setTimeout(()=>btn.textContent=label,1400);})
+    .catch(()=>{btn.textContent="Copy failed";setTimeout(()=>btn.textContent=label,1400);});
+});
+window.addEventListener("resize",()=>requestAnimationFrame(update));
+hashToState();
+update();
+</script>
+</body>
+</html>
